@@ -253,6 +253,24 @@ class MockableAsyncTests: XCTestCase {
         XCTAssertFalse(self.mock.hasCalled(self.mock.functionWithIntResultRef))
         XCTAssertTrue(self.mock.hasCalled(self.mock.functionWithStringResultRef))
     }
+
+    func testStreamingCallsReportsCallsWhenTheyAreReportedOverTime() async {
+        mock.registerResult(for: mock.functionWithIntResultRef) { _, arg2 in arg2 }
+        
+        Task.detached {
+            _ = await self.mock.functionWithIntResult(arg1: "101", arg2: 101)
+            try await Task.sleep(nanoseconds: 100_000_000)
+            _ = await self.mock.functionWithIntResult(arg1: "202", arg2: 202)
+            try await Task.sleep(nanoseconds: 100_000_000)
+            _ = await self.mock.functionWithIntResult(arg1: "303", arg2: 303)
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        var calls = [Int]()
+        for await call in mock.streamedCalls(to: mock.functionWithIntResultRef, timeout: 1) {
+            calls.append(call.arguments.1)
+        }
+        XCTAssertEqual(3, calls.count)
+    }
 }
 
 private class TestClass: AsyncTestProtocol, Mockable {

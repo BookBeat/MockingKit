@@ -288,7 +288,31 @@ public extension Mockable {
         to ref: AsyncMockReference<Arguments, Result>) -> [MockCall<Arguments, Result>] {
         registeredCalls(for: ref)
     }
-    
+
+    /**
+     Get a stream of all calls to a certain async mock reference.
+
+     - Parameters:
+       - ref: The mock reference to check calls for.
+       - timeout: The timout to wait until forcing  a completion
+     */
+    func streamedCalls<Arguments, Result>(
+        to ref: MockReference<Arguments, Result>, timeout: TimeInterval = 0.1) -> AsyncStream<MockCall<Arguments, Result>> {
+            streamedRegisteredCalls(id: ref.id, timeout: timeout)
+        }
+
+    /**
+     Get a stream all calls to a certain async mock reference.
+
+     - Parameters:
+       - ref: The mock reference to check calls for.
+       - timeout: The timout to wait until forcing  a completion
+     */
+    func streamedCalls<Arguments, Result>(
+        to ref: AsyncMockReference<Arguments, Result>, timeout: TimeInterval = 0.1) -> AsyncStream<MockCall<Arguments, Result>> {
+            streamedRegisteredCalls(id: ref.id, timeout: timeout)
+        }
+
     /**
      Check if a mock reference has been called.
 
@@ -352,6 +376,9 @@ private extension Mockable {
         for ref: MockReference<Arguments, Result>) {
         let calls = mock.registeredCalls[ref.id] ?? []
         mock.registeredCalls[ref.id] = calls + [call]
+        if let action = mock.registeredCallActions[ref.id] {
+            action(call)
+        }
     }
 
     func registerCall<Arguments, Result>(
@@ -359,6 +386,9 @@ private extension Mockable {
         for ref: AsyncMockReference<Arguments, Result>) {
         let calls = mock.registeredCalls[ref.id] ?? []
         mock.registeredCalls[ref.id] = calls + [call]
+        if let action = mock.registeredCallActions[ref.id] {
+            action(call)
+        }
     }
     
     func registeredCalls<Arguments, Result>(
@@ -371,6 +401,30 @@ private extension Mockable {
         for ref: AsyncMockReference<Arguments, Result>) -> [MockCall<Arguments, Result>] {
         let calls = mock.registeredCalls[ref.id]
         return (calls as? [MockCall<Arguments, Result>]) ?? []
+    }
+
+    func streamedRegisteredCalls<Arguments, Result>(id: UUID,
+                                            timeout: TimeInterval) -> AsyncStream<MockCall<Arguments, Result>> {
+        AsyncStream { continuation in
+            mock.registeredCallActions[id] = { call in
+                guard let call = call as? MockCall<Arguments, Result> else { return }
+                continuation.yield(call)
+            }
+            let registeredCalls = mock.registeredCalls[id]
+            let calls = registeredCalls?.compactMap { $0 as? MockCall<Arguments, Result> } ?? []
+            for call in calls {
+                continuation.yield(call)
+            }
+
+            continuation.onTermination = { @Sendable _ in
+                mock.registeredCallActions[id] = { _ in }
+            }
+
+            Task {
+                try await Task.sleep(nanoseconds: UInt64(timeout) * 1_000_000_000)
+                continuation.finish()
+            }
+        }
     }
 
     func registeredResult<Arguments, Result>(

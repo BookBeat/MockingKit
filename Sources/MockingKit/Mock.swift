@@ -27,4 +27,5 @@ open class Mock: Mockable {
     
     public internal(set) var registeredCalls: [UUID: [AnyCall]] = [:]
     public internal(set) var registeredResults: [UUID: Function] = [:]
+    public internal(set) var registeredCallActions: [UUID: (AnyCall) -> Void] = [:]
 }
