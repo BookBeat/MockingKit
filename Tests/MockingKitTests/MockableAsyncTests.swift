@@ -266,10 +266,28 @@ class MockableAsyncTests: XCTestCase {
             try await Task.sleep(nanoseconds: 100_000_000)
         }
         var calls = [Int]()
-        for await call in mock.streamedCalls(to: mock.functionWithIntResultRef, timeout: 1) {
+        for await call in mock.streamedCalls(to: mock.functionWithIntResultRef, terminationStrategy: .defaultTimeout) {
             calls.append(call.arguments.1)
         }
         XCTAssertEqual(3, calls.count)
+    }
+
+    func testStreamingCallsWithRegisteredCallsTermination() async {
+        mock.registerResult(for: mock.functionWithIntResultRef) { _, arg2 in arg2 }
+
+        Task.detached {
+            _ = await self.mock.functionWithIntResult(arg1: "101", arg2: 101)
+            try await Task.sleep(nanoseconds: 100_000_000)
+            _ = await self.mock.functionWithIntResult(arg1: "202", arg2: 202)
+            try await Task.sleep(nanoseconds: 100_000_000)
+            _ = await self.mock.functionWithIntResult(arg1: "303", arg2: 303)
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        var calls = [Int]()
+        for await call in mock.streamedCalls(to: mock.functionWithIntResultRef, terminationStrategy: .registeredCalls(2)) {
+            calls.append(call.arguments.1)
+        }
+        XCTAssertEqual(2, calls.count)
     }
 }
 

@@ -6,6 +6,20 @@
 //  Copyright © 2019 Daniel Saidi. All rights reserved.
 //
 
+public enum StreamedCallTerminationStrategy {
+
+    case registeredCalls(Int)
+    case timeout(TimeInterval)
+
+    public static var firstRegisteredCall: Self {
+        .registeredCalls(1)
+    }
+
+    public static var defaultTimeout: Self {
+        .timeout(3)
+    }
+}
+
 import Foundation
 
 /**
@@ -297,8 +311,8 @@ public extension Mockable {
        - timeout: The timout to wait until forcing  a completion
      */
     func streamedCalls<Arguments, Result>(
-        to ref: MockReference<Arguments, Result>, timeout: TimeInterval = 0.1) -> AsyncStream<MockCall<Arguments, Result>> {
-            streamedRegisteredCalls(id: ref.id, timeout: timeout)
+        to ref: MockReference<Arguments, Result>, terminationStrategy: StreamedCallTerminationStrategy = .firstRegisteredCall) -> AsyncStream<MockCall<Arguments, Result>> {
+            streamedRegisteredCalls(id: ref.id, terminationStrategy: terminationStrategy)
         }
 
     /**
@@ -309,8 +323,8 @@ public extension Mockable {
        - timeout: The timout to wait until forcing  a completion
      */
     func streamedCalls<Arguments, Result>(
-        to ref: AsyncMockReference<Arguments, Result>, timeout: TimeInterval = 0.1) -> AsyncStream<MockCall<Arguments, Result>> {
-            streamedRegisteredCalls(id: ref.id, timeout: timeout)
+        to ref: AsyncMockReference<Arguments, Result>, terminationStrategy: StreamedCallTerminationStrategy = .firstRegisteredCall) -> AsyncStream<MockCall<Arguments, Result>> {
+            streamedRegisteredCalls(id: ref.id, terminationStrategy: terminationStrategy)
         }
 
     /**
@@ -376,7 +390,7 @@ private extension Mockable {
         for ref: MockReference<Arguments, Result>) {
         let calls = mock.registeredCalls[ref.id] ?? []
         mock.registeredCalls[ref.id] = calls + [call]
-        if let action = mock.registeredCallActions[ref.id] {
+        if let action = mock.onRegisterCallActions[ref.id] {
             action(call)
         }
     }
@@ -386,7 +400,7 @@ private extension Mockable {
         for ref: AsyncMockReference<Arguments, Result>) {
         let calls = mock.registeredCalls[ref.id] ?? []
         mock.registeredCalls[ref.id] = calls + [call]
-        if let action = mock.registeredCallActions[ref.id] {
+        if let action = mock.onRegisterCallActions[ref.id] {
             action(call)
         }
     }
@@ -404,27 +418,51 @@ private extension Mockable {
     }
 
     func streamedRegisteredCalls<Arguments, Result>(id: UUID,
-                                            timeout: TimeInterval) -> AsyncStream<MockCall<Arguments, Result>> {
+                                                    terminationStrategy: StreamedCallTerminationStrategy) -> AsyncStream<MockCall<Arguments, Result>> {
         AsyncStream { continuation in
-            mock.registeredCallActions[id] = { call in
+            var countedCalls = 0
+
+            mock.onRegisterCallActions[id] = { call in
                 guard let call = call as? MockCall<Arguments, Result> else { return }
                 continuation.yield(call)
+                countedCalls += 1
+
+                if case .registeredCalls(let maxCalls) = terminationStrategy, countedCalls >= maxCalls {
+                    continuation.finish()
+                }
             }
             let registeredCalls = mock.registeredCalls[id]
+
             let calls = registeredCalls?.compactMap { $0 as? MockCall<Arguments, Result> } ?? []
             for call in calls {
                 continuation.yield(call)
+                countedCalls += 1
+
+                if case .registeredCalls(let maxCalls) = terminationStrategy, countedCalls >= maxCalls {
+                    continuation.finish()
+                }
             }
 
             continuation.onTermination = { @Sendable _ in
-                mock.registeredCallActions[id] = { _ in }
+                mock.onRegisterCallActions[id] = nil
             }
 
-            Task {
-                try await Task.sleep(nanoseconds: UInt64(timeout) * 1_000_000_000)
-                continuation.finish()
+            if case .timeout(let timeInterval) = terminationStrategy {
+                Task {
+                    try await Task.sleep(nanoseconds: UInt64(timeInterval) * 1_000_000_000)
+                    continuation.finish()
+                }
             }
         }
+    }
+
+
+
+    func terminateIfCallsExceedTerminationStrategyCalls(currentCalls: Int, terminationStrategy: StreamedCallTerminationStrategy) -> Bool {
+        if case .registeredCalls(let maxCalls) = terminationStrategy {
+            return currentCalls >= maxCalls
+        }
+        return false
     }
 
     func registeredResult<Arguments, Result>(
