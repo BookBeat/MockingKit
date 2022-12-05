@@ -1,6 +1,16 @@
 # Release Notes
 
 
+## 1.3
+
+Thanks to [Tim Andersson](https://github.com/Boerworz) and the people at BookBeat, MockingKit now supports keypaths.
+
+### ✨ New Features
+
+* `Mockable` now supports keypaths for all functions except `call`.
+
+
+
 ## 1.2
 
 This version removes all external dependencies.
