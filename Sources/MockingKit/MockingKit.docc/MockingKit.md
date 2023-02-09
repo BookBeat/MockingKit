@@ -13,12 +13,6 @@ MockingKit doesn't put any restrictions on your code or require you to structure
 
 
 
-## Supported Platforms
-
-MockingKit supports `iOS 13`, `macOS 10.15`, `tvOS 13` and `watchOS 6`.
-
-
-
 ## Installation
 
 MockingKit can be installed with the Swift Package Manager:
@@ -33,7 +27,13 @@ or with CocoaPods:
 pod MockingKit
 ```
 
-You can also clone the repository and build the library locally.
+If you prefer to not have external dependencies, you can also just copy the source code into your app.
+
+
+
+## Supported Platforms
+
+MockingKit supports `iOS 13`, `macOS 10.15`, `tvOS 13` and `watchOS 6`.
 
 
 
