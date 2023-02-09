@@ -26,7 +26,7 @@ MockingKit doesn't require any project configurations or build scripts, put any 
 
 The [online documentation][Documentation] has a [getting started guide][Getting-Started] guide to help you get started with MockingKit.
 
-In short, MockingKit lets you mock any protocols and open classes. For instance, consider that you have this protocol:
+In short, MockingKit lets you mock any protocols and open classes. For instance, consider this simple protocol:
 
 ```swift
 protocol MyProtocol {
