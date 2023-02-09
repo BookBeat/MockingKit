@@ -22,6 +22,30 @@ MockingKit doesn't require any project configurations or build scripts, put any 
 
 
 
+## Installation
+
+MockingKit can be installed with the Swift Package Manager:
+
+```
+https://github.com/danielsaidi/MockingKit.git
+```
+
+or with CocoaPods:
+
+```
+pod MockingKit
+```
+
+If you prefer to not have external dependencies, you can also just copy the source code into your app.
+
+
+
+## Supported Platforms
+
+MockingKit supports `iOS 13`, `macOS 10.15`, `tvOS 13` and `watchOS 6`.
+
+
+
 ## Getting started
 
 The [online documentation][Documentation] has a [getting started guide][Getting-Started] guide to help you get started with MockingKit.
@@ -75,30 +99,6 @@ mock.hasCalled(\.doStuffRef, numberOfTimes: 2)       // => false
 ```
 
 For more information, please see the [online documentation][Documentation] and [getting started guide][Getting-Started].
-
-
-
-## Installation
-
-MockingKit can be installed with the Swift Package Manager:
-
-```
-https://github.com/danielsaidi/MockingKit.git
-```
-
-or with CocoaPods:
-
-```
-pod MockingKit
-```
-
-If you prefer to not have external dependencies, you can also just copy the source code into your app.
-
-
-
-## Supported Platforms
-
-MockingKit supports `iOS 13`, `macOS 10.15`, `tvOS 13` and `watchOS 6`.
 
 
 
