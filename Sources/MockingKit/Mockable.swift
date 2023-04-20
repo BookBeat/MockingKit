@@ -44,41 +44,55 @@ extension Mockable {
         _ call: MockCall<Arguments, Result>,
         for ref: MockReference<Arguments, Result>
     ) {
+        mock.dispatchSemaphore.wait()
         let calls = mock.registeredCalls[ref.id] ?? []
         mock.registeredCalls[ref.id] = calls + [call]
+        mock.dispatchSemaphore.signal()
     }
 
     func registerCall<Arguments, Result>(
         _ call: MockCall<Arguments, Result>,
         for ref: AsyncMockReference<Arguments, Result>
     ) {
+        mock.dispatchSemaphore.wait()
         let calls = mock.registeredCalls[ref.id] ?? []
         mock.registeredCalls[ref.id] = calls + [call]
+        mock.dispatchSemaphore.signal()
     }
     
     func registeredCalls<Arguments, Result>(
         for ref: MockReference<Arguments, Result>
     ) -> [MockCall<Arguments, Result>] {
+        mock.dispatchSemaphore.wait()
         let calls = mock.registeredCalls[ref.id]
+        mock.dispatchSemaphore.signal()
         return (calls as? [MockCall<Arguments, Result>]) ?? []
     }
 
     func registeredCalls<Arguments, Result>(
         for ref: AsyncMockReference<Arguments, Result>
     ) -> [MockCall<Arguments, Result>] {
+        mock.dispatchSemaphore.wait()
         let calls = mock.registeredCalls[ref.id]
+        mock.dispatchSemaphore.signal()
         return (calls as? [MockCall<Arguments, Result>]) ?? []
     }
 
     func registeredResult<Arguments, Result>(
         for ref: MockReference<Arguments, Result>
     ) -> ((Arguments) throws -> Result)? {
-        mock.registeredResults[ref.id] as? (Arguments) throws -> Result
+        mock.dispatchSemaphore.wait()
+        let result = mock.registeredResults[ref.id] as? (Arguments) throws -> Result
+        mock.dispatchSemaphore.signal()
+        return result
     }
 
     func registeredResult<Arguments, Result>(
         for ref: AsyncMockReference<Arguments, Result>
     ) -> ((Arguments) async throws -> Result)? {
-        mock.registeredResults[ref.id] as? (Arguments) async throws -> Result
+        mock.dispatchSemaphore.wait()
+        let result = mock.registeredResults[ref.id] as? (Arguments) async throws -> Result
+        mock.dispatchSemaphore.signal()
+        return result
     }
 }

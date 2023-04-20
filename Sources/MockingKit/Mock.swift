@@ -27,4 +27,5 @@ open class Mock: Mockable {
     
     var registeredCalls: [UUID: [AnyCall]] = [:]
     var registeredResults: [UUID: Function] = [:]
+    let dispatchSemaphore = DispatchSemaphore(value: 1)
 }
